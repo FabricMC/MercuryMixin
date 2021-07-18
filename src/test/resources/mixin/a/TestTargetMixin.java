@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.Desc;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -89,6 +90,12 @@ public abstract class TestTargetMixin {
 
     @Redirect(method = "hhj", at = @At(value = "INVOKE", target = "Lhj;julp()I"))
     public int redirectJulp(hj instance) {
+        System.out.println("Redirecting getAge");
+        return 9;
+    }
+
+    @Redirect(method = "hhj", at = @At(value = "INVOKE", desc = @Desc(owner = hj.class, value = "julp", ret = int.class)))
+    public int redirectJulpModern(hj instance) {
         System.out.println("Redirecting getAge");
         return 9;
     }

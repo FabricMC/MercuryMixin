@@ -30,6 +30,7 @@ public final class MixinConstants {
     public static final String CONSTANT_CLASS = INJECTION_PACKAGE + ".Constant";
     public static final String MODIFY_CONSTANT_CLASS = INJECTION_PACKAGE + ".ModifyConstant";
     public static final String MODIFY_VARIABLE_CLASS = INJECTION_PACKAGE + ".ModifyVariable";
+    public static final String DESC_CLASS = INJECTION_PACKAGE + ".Desc";
 
     private MixinConstants() {
     }

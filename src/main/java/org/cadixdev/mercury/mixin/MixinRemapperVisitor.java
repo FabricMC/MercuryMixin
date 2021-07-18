@@ -21,6 +21,7 @@ import org.cadixdev.bombe.analysis.InheritanceProvider;
 import org.cadixdev.bombe.type.FieldType;
 import org.cadixdev.bombe.type.MethodDescriptor;
 import org.cadixdev.bombe.type.Type;
+import org.cadixdev.bombe.type.VoidType;
 import org.cadixdev.bombe.type.signature.FieldSignature;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
@@ -33,6 +34,7 @@ import org.cadixdev.mercury.mixin.annotation.AccessorData;
 import org.cadixdev.mercury.mixin.annotation.AccessorName;
 import org.cadixdev.mercury.mixin.annotation.AccessorType;
 import org.cadixdev.mercury.mixin.annotation.AtData;
+import org.cadixdev.mercury.mixin.annotation.DescData;
 import org.cadixdev.mercury.mixin.annotation.InjectData;
 import org.cadixdev.mercury.mixin.annotation.InjectTarget;
 import org.cadixdev.mercury.mixin.annotation.MixinClass;
@@ -507,6 +509,56 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     }
                 }
             }
+
+            // modern style @Desc
+            if ("desc".equals(atRawPair.getName().getIdentifier())) {
+                if (!atDatum.getDesc().isPresent()) continue;
+                this.remapDescAnnotation(ast, declaringClass, (NormalAnnotation) atRawPair.getValue(), atDatum.getDesc().get());
+            }
+        }
+    }
+
+    private void remapDescAnnotation(final AST ast, final ITypeBinding declaringClass,
+                                     final NormalAnnotation annotation, final DescData descData) {
+        final ITypeBinding owner = descData.getOwnerBinding().isNullType() ?
+                declaringClass :
+                descData.getOwnerBinding();
+
+        // get the class mapping of the class that owns the target we're remapping
+        final ClassMapping<?, ?> targetClass = mappings.computeClassMapping(owner.getErasure().getBinaryName()).orElse(null);
+        if (targetClass == null) return;
+
+        final Type returnType = BombeBindings.convertType(descData.getReturnBinding());
+
+        // try remap as a method
+        {
+            final List<FieldType> arguments = new ArrayList<>(descData.getArgBindings().length);
+
+            for (final ITypeBinding argBinding : descData.getArgBindings()) {
+                arguments.add((FieldType) BombeBindings.convertType(argBinding));
+            }
+
+            final MethodMapping methodMapping = targetClass.getMethodMapping(new MethodSignature(
+                    descData.getName(),
+                    new MethodDescriptor(arguments, returnType)
+            )).orElse(null);
+            if (methodMapping != null) {
+                for (final Object raw : annotation.values()) {
+                    // this will always be a MemberValuePair
+                    final MemberValuePair pairRaw = (MemberValuePair) raw;
+
+                    if ("value".equals(pairRaw.getName().getIdentifier())) {
+                        replaceExpression(ast, this.context, pairRaw.getValue(), methodMapping.getDeobfuscatedName());
+                    }
+                }
+
+                return;
+            }
+        }
+
+        // try remap as a field
+        if (descData.getArgBindings().length == 0 && returnType != VoidType.INSTANCE) {
+            // TODO: implement
         }
     }
 
