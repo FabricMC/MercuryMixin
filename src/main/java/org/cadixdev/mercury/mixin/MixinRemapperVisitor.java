@@ -308,7 +308,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 }
             }
 
-            // @Inject, @Redirect, @ModifyConstant, & @ModifyVariable
+            // @Inject, @Redirect, @ModifyConstant, @ModifyVariable
             if (Objects.equals(INJECT_CLASS, annotationType)
                     || Objects.equals(REDIRECT_CLASS, annotationType)
                     || Objects.equals(MODIFY_CONSTANT_CLASS, annotationType)
@@ -340,6 +340,21 @@ public class MixinRemapperVisitor extends ASTVisitor {
                             for (int j = 0; j < array.expressions().size(); j++) {
                                 final StringLiteral original = (StringLiteral) array.expressions().get(j);
                                 replaceExpression(ast, this.context, original, injectTargets[j]);
+                            }
+                        }
+                    }
+
+                    // Remap the @Desc targets
+                    if ("target".equals(pair.getName().getIdentifier())) {
+                        if (pair.getValue() instanceof Annotation) {
+                            final Annotation original = (Annotation) pair.getValue();
+                            this.remapDescAnnotation(ast, declaringClass, original, inject.getDescTargets()[0]);
+                        }
+                        else if (pair.getValue() instanceof ArrayInitializer) {
+                            final ArrayInitializer array = (ArrayInitializer) pair.getValue();
+                            for (int j = 0; j < array.expressions().size(); j++) {
+                                final Annotation original = (Annotation) array.expressions().get(j);
+                                this.remapDescAnnotation(ast, declaringClass, original, inject.getDescTargets()[j]);
                             }
                         }
                     }

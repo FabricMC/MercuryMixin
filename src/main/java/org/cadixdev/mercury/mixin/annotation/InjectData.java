@@ -23,6 +23,7 @@ public class InjectData {
     // @Inject(method={"example"}, at=@At(...))
     public static InjectData from(final IAnnotationBinding binding) {
         InjectTarget[] injectTargets = {};
+        DescData[] descTargets = {};
         AtData[] atData = {};
         SliceData[] sliceData = {};
 
@@ -33,6 +34,14 @@ public class InjectData {
                 injectTargets = new InjectTarget[raw.length];
                 for (int i = 0; i < raw.length; i++) {
                     injectTargets[i] = InjectTarget.of((String) raw[i]);
+                }
+            }
+            else if ("target".equals(pair.getName())) {
+                final Object[] raw = (Object[]) pair.getValue();
+
+                descTargets = new DescData[raw.length];
+                for (int i = 0; i < raw.length; i++) {
+                    descTargets[i] = DescData.from((IAnnotationBinding) raw[i]);
                 }
             }
             else if (Objects.equals("at", pair.getName())) {
@@ -71,21 +80,27 @@ public class InjectData {
             }
         }
 
-        return new InjectData(injectTargets, atData, sliceData);
+        return new InjectData(injectTargets, descTargets, atData, sliceData);
     }
 
     private final InjectTarget[] injectTargets;
+    private final DescData[] descTargets;
     private final AtData[] atData;
     private final SliceData[] sliceData;
 
-    public InjectData(final InjectTarget[] injectTargets, final AtData[] atData, final SliceData[] sliceData) {
+    public InjectData(final InjectTarget[] injectTargets, final DescData[] descTargets, final AtData[] atData, final SliceData[] sliceData) {
         this.injectTargets = injectTargets;
+        this.descTargets = descTargets;
         this.atData = atData;
         this.sliceData = sliceData;
     }
 
     public InjectTarget[] getInjectTargets() {
         return this.injectTargets;
+    }
+
+    public DescData[] getDescTargets() {
+        return this.descTargets;
     }
 
     public AtData[] getAtData() {

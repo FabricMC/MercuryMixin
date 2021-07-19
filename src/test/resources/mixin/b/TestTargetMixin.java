@@ -49,6 +49,11 @@ public abstract class TestTargetMixin {
         System.out.println("Hello, world!");
     }
 
+    @Inject(target = {@Desc("start"), @Desc("jjjj")}, at = @At("HEAD"))
+    public void onStartModernTarget(final CallbackInfo callbackInfo) {
+        System.out.println("Hello, world!");
+    }
+
     @Inject(method = {"start()V", "jjjj"}, at = @At("HEAD"))
     public void onStart2(final CallbackInfo callbackInfo) {
         System.out.println("Hello, world!");
@@ -66,6 +71,11 @@ public abstract class TestTargetMixin {
 
     @Inject(method = "start", at = @At(value = "INVOKE", target = "LTestTarget;unknownMethod()V"))
     public void injectIntoUnknownMethod(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from injection part 2!");
+    }
+
+    @Inject(target = @Desc("start"), at = @At(value = "INVOKE", target = "LTestTarget;unknownMethod()V"))
+    public void injectIntoUnknownMethodModernTarget(final CallbackInfo callbackInfo) {
         System.out.println("Hello from injection part 2!");
     }
 
