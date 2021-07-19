@@ -520,13 +520,14 @@ public class MixinRemapperVisitor extends ASTVisitor {
 
     private void remapDescAnnotation(final AST ast, final ITypeBinding declaringClass,
                                      final Annotation annotation, final DescData descData) {
-        final ITypeBinding owner = descData.getOwnerBinding() == null ?
-                declaringClass :
-                descData.getOwnerBinding();
+        // todo: be passed this information
+        final MixinClass mixin = MixinClass.fetch(declaringClass, this.mappings);
+        if (mixin == null) return;
 
-        // get the class mapping of the class that owns the target we're remapping
-        final ClassMapping<?, ?> targetClass = mappings.computeClassMapping(owner.getErasure().getBinaryName()).orElse(null);
-        if (targetClass == null) return;
+        final ClassMapping<?, ?> owner = descData.getOwnerBinding() == null ?
+                this.mappings.getClassMapping(mixin.getTargetNames()[0]).orElse(null) :
+                this.mappings.getClassMapping(descData.getOwnerBinding().getBinaryName()).orElse(null);
+        if (owner == null) return;
 
         final Type returnType = descData.getReturnBinding() == null ?
                 VoidType.INSTANCE :
@@ -540,7 +541,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 arguments.add((FieldType) BombeBindings.convertType(argBinding));
             }
 
-            final MethodMapping methodMapping = targetClass.getMethodMapping(new MethodSignature(
+            final MethodMapping methodMapping = owner.getMethodMapping(new MethodSignature(
                     descData.getName(),
                     new MethodDescriptor(arguments, returnType)
             )).orElse(null);
