@@ -513,14 +513,14 @@ public class MixinRemapperVisitor extends ASTVisitor {
             // modern style @Desc
             if ("desc".equals(atRawPair.getName().getIdentifier())) {
                 if (!atDatum.getDesc().isPresent()) continue;
-                this.remapDescAnnotation(ast, declaringClass, (NormalAnnotation) atRawPair.getValue(), atDatum.getDesc().get());
+                this.remapDescAnnotation(ast, declaringClass, (Annotation) atRawPair.getValue(), atDatum.getDesc().get());
             }
         }
     }
 
     private void remapDescAnnotation(final AST ast, final ITypeBinding declaringClass,
-                                     final NormalAnnotation annotation, final DescData descData) {
-        final ITypeBinding owner = descData.getOwnerBinding().isNullType() ?
+                                     final Annotation annotation, final DescData descData) {
+        final ITypeBinding owner = descData.getOwnerBinding() == null ?
                 declaringClass :
                 descData.getOwnerBinding();
 
@@ -528,7 +528,9 @@ public class MixinRemapperVisitor extends ASTVisitor {
         final ClassMapping<?, ?> targetClass = mappings.computeClassMapping(owner.getErasure().getBinaryName()).orElse(null);
         if (targetClass == null) return;
 
-        final Type returnType = BombeBindings.convertType(descData.getReturnBinding());
+        final Type returnType = descData.getReturnBinding() == null ?
+                VoidType.INSTANCE :
+                BombeBindings.convertType(descData.getReturnBinding());
 
         // try remap as a method
         {
@@ -543,15 +545,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     new MethodDescriptor(arguments, returnType)
             )).orElse(null);
             if (methodMapping != null) {
-                for (final Object raw : annotation.values()) {
-                    // this will always be a MemberValuePair
-                    final MemberValuePair pairRaw = (MemberValuePair) raw;
-
-                    if ("value".equals(pairRaw.getName().getIdentifier())) {
-                        replaceExpression(ast, this.context, pairRaw.getValue(), methodMapping.getDeobfuscatedName());
-                    }
-                }
-
+                replaceValueInAnnotation(ast, this.context, annotation, methodMapping.getDeobfuscatedName());
                 return;
             }
         }
