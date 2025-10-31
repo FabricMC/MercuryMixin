@@ -27,8 +27,7 @@ public class AtData {
     // @At(value = "", target = "")
     public static AtData from(final IAnnotationBinding binding) {
         String injectionPoint = null;
-        String className = null;
-        InjectTarget target = null;
+        String combined = null;
         DescData desc = null;
 
         for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
@@ -36,33 +35,51 @@ public class AtData {
                 injectionPoint = (String) pair.getValue();
             }
             else if (Objects.equals("target", pair.getName())) {
-                final String combined = (String) pair.getValue();
-
-                Matcher methodDescMatcher = METHOD_REF_PATTERN.matcher(combined);
-                if (methodDescMatcher.matches()) {
-                    className = null;
-                    target = InjectTarget.of(combined);
-                    break;
-                }
-
-                final int semiIndex = combined.indexOf(';');
-                if (semiIndex >= 0) {
-                    className = combined.substring(1, semiIndex);
-                    target = InjectTarget.of(combined.substring(semiIndex + 1));
-                }
-                else {
-                    Matcher matcher = DOT_REF_PATTERN.matcher(combined);
-                    if (matcher.matches()) {
-                        className = matcher.group(1);
-                        target = InjectTarget.of(matcher.group(2));
-                    } else {
-                        // it's just the class name, probably a NEW
-                        className = combined;   
-                    }
-                }
+                combined = (String) pair.getValue();
             }
             else if ("desc".equals(pair.getName())) {
                 desc = DescData.from((IAnnotationBinding) pair.getValue());
+            }
+        }
+
+        return from(injectionPoint, combined, desc);
+    }
+
+    // TODO: Make this not necessary for MixinExtras expression definitions,
+    //  we don't need the injection points or descs there, as it's irrelevant.
+    //  Realistically the best approach here would be to make InjectTarget carry the target class.
+    //  At only needs to carry the injection point on its own otherwise, if it carries any significance.
+    /**
+     * @param injectionPoint value field
+     * @param combined target field
+     * */
+    public static AtData from(final String injectionPoint, final String combined, final DescData desc) {
+        if (combined == null) {
+            return new AtData(injectionPoint, null, null, desc);
+        }
+
+        String className;
+        InjectTarget target;
+
+        Matcher methodDescMatcher = METHOD_REF_PATTERN.matcher(combined);
+        if (methodDescMatcher.matches()) {
+            return new AtData(injectionPoint, null, InjectTarget.of(combined), desc);
+        }
+
+        final int semiIndex = combined.indexOf(';');
+        if (semiIndex >= 0) {
+            className = combined.substring(1, semiIndex);
+            target = InjectTarget.of(combined.substring(semiIndex + 1));
+        }
+        else {
+            Matcher matcher = DOT_REF_PATTERN.matcher(combined);
+            if (matcher.matches()) {
+                className = matcher.group(1);
+                target = InjectTarget.of(matcher.group(2));
+            } else {
+                // it's just the class name, probably a NEW
+                className = combined;
+                target = null;
             }
         }
 
