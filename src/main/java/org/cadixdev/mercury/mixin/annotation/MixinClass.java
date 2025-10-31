@@ -12,7 +12,7 @@ import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.ClassMapping;
 import org.cadixdev.lorenz.model.FieldMapping;
 import org.cadixdev.lorenz.model.MethodMapping;
-import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.ITypeBinding;
 
 import java.util.HashMap;
 import java.util.Map;

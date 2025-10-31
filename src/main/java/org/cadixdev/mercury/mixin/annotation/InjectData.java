@@ -6,8 +6,8 @@
 
 package org.cadixdev.mercury.mixin.annotation;
 
-import org.eclipse.jdt.core.dom.IAnnotationBinding;
-import org.eclipse.jdt.core.dom.IMemberValuePairBinding;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IAnnotationBinding;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IMemberValuePairBinding;
 
 import java.util.Arrays;
 import java.util.Objects;

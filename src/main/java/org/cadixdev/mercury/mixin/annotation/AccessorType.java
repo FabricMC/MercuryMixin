@@ -8,7 +8,7 @@ package org.cadixdev.mercury.mixin.annotation;
 
 import org.cadixdev.bombe.type.VoidType;
 import org.cadixdev.bombe.type.signature.MethodSignature;
-import org.eclipse.jdt.core.dom.IMethodBinding;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IMethodBinding;
 
 import java.lang.reflect.Modifier;
 import java.util.Objects;

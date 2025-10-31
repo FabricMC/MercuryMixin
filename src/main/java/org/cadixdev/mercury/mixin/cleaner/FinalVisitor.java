@@ -16,17 +16,17 @@ import org.cadixdev.mercury.RewriteContext;
 import org.cadixdev.mercury.analysis.MercuryInheritanceProvider;
 import org.cadixdev.mercury.mixin.annotation.MixinData;
 import org.cadixdev.mercury.util.BombeBindings;
-import org.eclipse.jdt.core.dom.AST;
-import org.eclipse.jdt.core.dom.ASTNode;
-import org.eclipse.jdt.core.dom.ASTVisitor;
-import org.eclipse.jdt.core.dom.FieldDeclaration;
-import org.eclipse.jdt.core.dom.IAnnotationBinding;
-import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.eclipse.jdt.core.dom.IVariableBinding;
-import org.eclipse.jdt.core.dom.MarkerAnnotation;
-import org.eclipse.jdt.core.dom.Modifier;
-import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
-import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.AST;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.ASTNode;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.ASTVisitor;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IAnnotationBinding;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.ITypeBinding;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IVariableBinding;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.MarkerAnnotation;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.Modifier;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.rewrite.ListRewrite;
 
 import java.util.Objects;
 
