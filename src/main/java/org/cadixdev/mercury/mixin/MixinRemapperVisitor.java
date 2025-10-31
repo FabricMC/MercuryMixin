@@ -50,6 +50,7 @@ import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.SimpleName;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.SingleMemberAnnotation;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.StringLiteral;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IMemberValuePairBinding;
 
 import java.util.ArrayList;
 import java.util.List;
