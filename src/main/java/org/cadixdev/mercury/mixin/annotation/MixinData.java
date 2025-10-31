@@ -46,7 +46,6 @@ public class MixinData {
                 for (int i = 0; i < targetsTemp.length; i++) {
                     targets[i] = (ITypeBinding) targetsTemp[i];
                 }
-
             }
             if (Objects.equals("targets", pair.getName())) {
                 final Object[] privateTargetsTemp = (Object[]) pair.getValue();

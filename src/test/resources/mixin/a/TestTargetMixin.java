@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.Desc;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -48,6 +49,11 @@ public abstract class TestTargetMixin {
         System.out.println("Hello, world!");
     }
 
+    @Inject(target = {@Desc("hhj"), @Desc("jjjj")}, at = @At("HEAD"))
+    public void onStartModernTarget(final CallbackInfo callbackInfo) {
+        System.out.println("Hello, world!");
+    }
+
     @Inject(method = {"hhj()V", "jjjj"}, at = @At("HEAD"))
     public void onStart2(final CallbackInfo callbackInfo) {
         System.out.println("Hello, world!");
@@ -58,8 +64,18 @@ public abstract class TestTargetMixin {
         System.out.println("Hello from injection!");
     }
 
+    @Inject(method = "hhj", at = @At(value = "INVOKE", desc = @Desc("gyhu")))
+    public void injectModernTarget(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from injection!");
+    }
+
     @Inject(method = "hhj", at = @At(value = "INVOKE", target = "Lhj;unknownMethod()V"))
     public void injectIntoUnknownMethod(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from injection part 2!");
+    }
+
+    @Inject(target = @Desc("hhj"), at = @At(value = "INVOKE", target = "Lhj;unknownMethod()V"))
+    public void injectIntoUnknownMethodModernTarget(final CallbackInfo callbackInfo) {
         System.out.println("Hello from injection part 2!");
     }
 
@@ -89,6 +105,12 @@ public abstract class TestTargetMixin {
 
     @Redirect(method = "hhj", at = @At(value = "INVOKE", target = "Lhj;julp()I"))
     public int redirectJulp(hj instance) {
+        System.out.println("Redirecting getAge");
+        return 9;
+    }
+
+    @Redirect(method = "hhj", at = @At(value = "INVOKE", desc = @Desc(owner = hj.class, value = "julp", ret = int.class)))
+    public int redirectJulpModern(hj instance) {
         System.out.println("Redirecting getAge");
         return 9;
     }

@@ -29,6 +29,7 @@ public class AtData {
         String injectionPoint = null;
         String className = null;
         InjectTarget target = null;
+        DescData desc = null;
 
         for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
             if (Objects.equals("value", pair.getName())) {
@@ -60,19 +61,24 @@ public class AtData {
                     }
                 }
             }
+            else if ("desc".equals(pair.getName())) {
+                desc = DescData.from((IAnnotationBinding) pair.getValue());
+            }
         }
 
-        return new AtData(injectionPoint, className, target);
+        return new AtData(injectionPoint, className, target, desc);
     }
 
     private final String injectionPoint;
     private final String className;
     private final InjectTarget target;
+    private final DescData desc;
 
-    public AtData(final String injectionPoint, final String className, final InjectTarget target) {
+    public AtData(final String injectionPoint, final String className, final InjectTarget target, final DescData desc) {
         this.injectionPoint = injectionPoint;
         this.className = className;
         this.target = target;
+        this.desc = desc;
     }
 
     public String getInjectionPoint() {
@@ -85,6 +91,10 @@ public class AtData {
 
     public Optional<InjectTarget> getTarget() {
         return Optional.ofNullable(this.target);
+    }
+
+    public Optional<DescData> getDesc() {
+        return Optional.ofNullable(this.desc);
     }
 
     @Override

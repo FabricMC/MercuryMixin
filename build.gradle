@@ -39,6 +39,7 @@ license {
     header = project.file('HEADER.txt')
 
     exclude 'org/cadixdev/mercury/mixin/annotation/AccessorName.java'
+    exclude 'org/cadixdev/mercury/mixin/annotation/DescData.java'
 }
 
 processResources {

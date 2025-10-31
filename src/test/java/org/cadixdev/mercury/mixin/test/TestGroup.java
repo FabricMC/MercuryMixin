@@ -142,7 +142,7 @@ public class TestGroup {
     }
 
     private static void downloadMixin(final Path path) throws IOException {
-        final URL url = new URL("https://repo.spongepowered.org/maven/org/spongepowered/mixin/0.8/mixin-0.8.jar");
+        final URL url = new URL("https://repo.spongepowered.org/maven/org/spongepowered/mixin/0.8.3/mixin-0.8.3.jar");
         try (final ReadableByteChannel rbc = Channels.newChannel(url.openStream());
              final FileOutputStream fos = new FileOutputStream(path.toFile())) {
             fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);

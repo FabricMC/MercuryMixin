@@ -14,6 +14,7 @@ import org.cadixdev.bombe.analysis.InheritanceProvider;
 import org.cadixdev.bombe.type.FieldType;
 import org.cadixdev.bombe.type.MethodDescriptor;
 import org.cadixdev.bombe.type.Type;
+import org.cadixdev.bombe.type.VoidType;
 import org.cadixdev.bombe.type.signature.FieldSignature;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
@@ -24,6 +25,7 @@ import org.cadixdev.mercury.mixin.annotation.AccessorData;
 import org.cadixdev.mercury.mixin.annotation.AccessorName;
 import org.cadixdev.mercury.mixin.annotation.AccessorType;
 import org.cadixdev.mercury.mixin.annotation.AtData;
+import org.cadixdev.mercury.mixin.annotation.DescData;
 import org.cadixdev.mercury.mixin.annotation.InjectData;
 import org.cadixdev.mercury.mixin.annotation.InjectTarget;
 import org.cadixdev.mercury.mixin.annotation.MixinClass;
@@ -301,7 +303,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 }
             }
 
-            // @Inject, @Redirect, @ModifyConstant, & @ModifyVariable
+            // @Inject, @Redirect, @ModifyConstant, @ModifyVariable
             if (Objects.equals(INJECT_CLASS, annotationType)
                     || Objects.equals(REDIRECT_CLASS, annotationType)
                     || Objects.equals(MODIFY_CONSTANT_CLASS, annotationType)
@@ -334,6 +336,21 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     // TODO: handle the case where we point towards a string constant?
                     if (Objects.equals("method", pair.getName().getIdentifier())) {
                         remapMethod(ast, pair, injectTargets);
+                    }
+
+                    // Remap the @Desc targets
+                    if ("target".equals(pair.getName().getIdentifier())) {
+                        if (pair.getValue() instanceof Annotation) {
+                            final Annotation original = (Annotation) pair.getValue();
+                            this.remapDescAnnotation(ast, declaringClass, original, inject.getDescTargets()[0]);
+                        }
+                        else if (pair.getValue() instanceof ArrayInitializer) {
+                            final ArrayInitializer array = (ArrayInitializer) pair.getValue();
+                            for (int j = 0; j < array.expressions().size(); j++) {
+                                final Annotation original = (Annotation) array.expressions().get(j);
+                                this.remapDescAnnotation(ast, declaringClass, original, inject.getDescTargets()[j]);
+                            }
+                        }
                     }
 
                     // Remap @At
@@ -616,6 +633,51 @@ public class MixinRemapperVisitor extends ASTVisitor {
                         .ifPresent(desc -> replaceExpression(ast, this.context, atRawPair.getValue(), this.mappings.deobfuscate(desc).toString()));
                 }
             }
+
+            // modern style @Desc
+            if ("desc".equals(atRawPair.getName().getIdentifier())) {
+                if (!atDatum.getDesc().isPresent()) continue;
+                this.remapDescAnnotation(ast, declaringClass, (Annotation) atRawPair.getValue(), atDatum.getDesc().get());
+            }
+        }
+    }
+
+    private void remapDescAnnotation(final AST ast, final ITypeBinding declaringClass,
+                                     final Annotation annotation, final DescData descData) {
+        // todo: be passed this information
+        final MixinClass mixin = MixinClass.fetch(declaringClass, this.mappings);
+        if (mixin == null) return;
+
+        final ClassMapping<?, ?> owner = descData.getOwnerBinding() == null ?
+                this.mappings.getClassMapping(mixin.getTargetNames()[0]).orElse(null) :
+                this.mappings.getClassMapping(descData.getOwnerBinding().getBinaryName()).orElse(null);
+        if (owner == null) return;
+
+        final Type returnType = descData.getReturnBinding() == null ?
+                VoidType.INSTANCE :
+                BombeBindings.convertType(descData.getReturnBinding());
+
+        // try remap as a method
+        {
+            final List<FieldType> arguments = new ArrayList<>(descData.getArgBindings().length);
+
+            for (final ITypeBinding argBinding : descData.getArgBindings()) {
+                arguments.add((FieldType) BombeBindings.convertType(argBinding));
+            }
+
+            final MethodMapping methodMapping = owner.getMethodMapping(new MethodSignature(
+                    descData.getName(),
+                    new MethodDescriptor(arguments, returnType)
+            )).orElse(null);
+            if (methodMapping != null) {
+                replaceValueInAnnotation(ast, this.context, annotation, methodMapping.getDeobfuscatedName());
+                return;
+            }
+        }
+
+        // try remap as a field
+        if (descData.getArgBindings().length == 0 && returnType != VoidType.INSTANCE) {
+            // TODO: implement
         }
     }
 
