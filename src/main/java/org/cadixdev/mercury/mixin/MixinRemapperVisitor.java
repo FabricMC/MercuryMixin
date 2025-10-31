@@ -332,16 +332,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     // Remap the method pair
                     // TODO: handle the case where we point towards a string constant?
                     if (Objects.equals("method", pair.getName().getIdentifier())) {
-                        if (pair.getValue() instanceof StringLiteral || pair.getValue() instanceof InfixExpression) {
-                            replaceExpression(ast, this.context, pair.getValue(), injectTargets[0]);
-                        }
-                        else if (pair.getValue() instanceof ArrayInitializer) {
-                            final ArrayInitializer array = (ArrayInitializer) pair.getValue();
-                            for (int j = 0; j < array.expressions().size(); j++) {
-                                final StringLiteral original = (StringLiteral) array.expressions().get(j);
-                                replaceExpression(ast, this.context, original, injectTargets[j]);
-                            }
-                        }
+                        remapMethod(ast, pair, injectTargets);
                     }
 
                     // Remap @At
@@ -395,9 +386,66 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     }
                 }
             }
+
+            // TODO: This should be refactored such that InjectData can handle this case,
+            //  or other arbitrary cases like it, instead of being a bodge on.
+            //  This largely duplicates the previous branch while specialising it.
+            // MixinSquared's @TargetHandle
+            // This is going to be a rare case, but might as well be comprehensive.
+            if (Objects.equals(TARGET_HANDLER, annotationType)) {
+                // Special casing as it uses `name` instead of `method`.
+                final InjectTarget[] inject = getInjectTargets(annotation, "name");
+
+                final String[] injectTargets = new String[inject.length];
+                for (int j = 0; j < inject.length; j++) {
+                    final InjectTarget injectTarget = inject[j];
+                    injectTargets[j] = remapInjectTarget(target, injectTarget, binding);
+                }
+
+                final NormalAnnotation originalAnnotation = (NormalAnnotation) node.modifiers().get(i);
+                for (final Object raw : originalAnnotation.values()) {
+                    final MemberValuePair pair = (MemberValuePair) raw;
+
+                    // Remap the method pair, like above.
+                    if (Objects.equals("name", pair.getName().getIdentifier())) {
+                        remapMethod(ast, pair, injectTargets);
+                    }
+                }
+            }
         }
 
         return true;
+    }
+
+    // TODO: refactor InjectInfo to not require this out of band case.
+    private static InjectTarget[] getInjectTargets(final IAnnotationBinding binding, final String method) {
+        InjectTarget[] injectTargets = {};
+
+        for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
+            if (Objects.equals(method, pair.getName())) {
+                final Object[] raw = (Object[]) pair.getValue();
+
+                injectTargets = new InjectTarget[raw.length];
+                for (int i = 0; i < raw.length; i++) {
+                    injectTargets[i] = InjectTarget.of((String) raw[i]);
+                }
+            }
+        }
+
+        return injectTargets;
+    }
+
+    private void remapMethod(final AST ast, final MemberValuePair pair, final String[] injectTargets) {
+        if (pair.getValue() instanceof StringLiteral || pair.getValue() instanceof InfixExpression) {
+            replaceExpression(ast, this.context, pair.getValue(), injectTargets[0]);
+        }
+        else if (pair.getValue() instanceof ArrayInitializer) {
+            final ArrayInitializer array = (ArrayInitializer) pair.getValue();
+            for (int j = 0; j < array.expressions().size(); j++) {
+                final StringLiteral original = (StringLiteral) array.expressions().get(j);
+                replaceExpression(ast, this.context, original, injectTargets[j]);
+            }
+        }
     }
 
     private String remapInjectTarget(final ClassMapping<?, ?> target, final InjectTarget injectTarget, final IMethodBinding binding) {
