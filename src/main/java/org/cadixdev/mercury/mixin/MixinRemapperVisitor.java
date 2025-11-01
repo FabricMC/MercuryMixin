@@ -163,6 +163,14 @@ public class MixinRemapperVisitor extends ASTVisitor {
         final AST ast = this.context.getCompilationUnit().getAST();
         final IMethodBinding binding = node.resolveBinding();
 
+        if (binding == null) {
+            if (this.context.getMercury().isGracefulClasspathChecks()) {
+                return true;
+            }
+
+            throw new IllegalStateException("No binding for type declaration " + node.getName() + " in class " + this.context.getQualifiedPrimaryType());
+        }
+
         final ITypeBinding declaringClass = binding.getDeclaringClass();
         final MixinClass mixin = MixinClass.fetch(declaringClass, this.mappings);
         if (mixin == null) return true;
@@ -728,6 +736,9 @@ public class MixinRemapperVisitor extends ASTVisitor {
             final SingleMemberAnnotation annotationNode = (SingleMemberAnnotation) rawAnnotation;
             final StringLiteral original = (StringLiteral) annotationNode.getValue();
             replaceExpression(ast, context, original, replacement);
+        }
+        else if (rawAnnotation.isMarkerAnnotation()) {
+            // FIXME: Look at this properly
         }
         else {
             throw new RuntimeException("Unexpected annotation: " + rawAnnotation.getClass().getName());
