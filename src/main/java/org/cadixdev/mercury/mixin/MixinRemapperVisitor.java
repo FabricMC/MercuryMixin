@@ -31,7 +31,6 @@ import org.cadixdev.mercury.mixin.annotation.InjectTarget;
 import org.cadixdev.mercury.mixin.annotation.MixinClass;
 import org.cadixdev.mercury.mixin.annotation.ShadowData;
 import org.cadixdev.mercury.mixin.annotation.SliceData;
-import org.cadixdev.mercury.mixin.util.MixinConstants;
 import org.cadixdev.mercury.util.BombeBindings;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.AST;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.ASTVisitor;
@@ -41,6 +40,7 @@ import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.Expression;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IBinding;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IExtendedModifier;
+import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IMemberValuePairBinding;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IMethodBinding;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.ITypeBinding;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IVariableBinding;
@@ -52,7 +52,6 @@ import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.SimpleName;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.SingleMemberAnnotation;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.StringLiteral;
 import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.TypeDeclaration;
-import org.cadixdev.mercury.shadow.org.eclipse.jdt.core.dom.IMemberValuePairBinding;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -311,7 +310,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 }
             }
 
-            // @Inject, @Redirect, @ModifyConstant, @ModifyVariable
+            // @Inject, @Redirect, @ModifyConstant, & @ModifyVariable
             if (Objects.equals(INJECT_CLASS, annotationType)
                     || Objects.equals(REDIRECT_CLASS, annotationType)
                     || Objects.equals(MODIFY_CONSTANT_CLASS, annotationType)
@@ -413,6 +412,41 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 }
             }
 
+            // TODO: A similar "should be refactored" case.
+            //  However, this behaves closer to @At("INVOKE") and @At("FIELD"),
+            //  and needs to reimplement At remapping instead.
+            // MixinExtra's @Definition
+            if (Objects.equals(DEFINITION, annotationType)) {
+                Object[] rawMethod = null;
+                Object[] rawField = null;
+
+                for (final IMemberValuePairBinding pair : annotation.getDeclaredMemberValuePairs()) {
+                    if (Objects.equals("method", pair.getName())) {
+                        rawMethod = (Object[]) pair.getValue();
+                    }
+                    if (Objects.equals("field", pair.getName())) {
+                        rawField = (Object[]) pair.getValue();
+                    }
+                }
+
+                final NormalAnnotation originalAnnotation = (NormalAnnotation) node.modifiers().get(i);
+                for (final Object raw : originalAnnotation.values()) {
+                    final MemberValuePair pair = (MemberValuePair) raw;
+
+                    // note: rawMethod and rawField should not be null here
+                    if (Objects.equals("method", pair.getName().getIdentifier())) {
+                        assert rawMethod != null;
+
+                        remapAtLikeField(ast, rawMethod, pair.getValue(), "INVOKE");
+                    }
+                    else if (Objects.equals("field", pair.getName().getIdentifier())) {
+                        assert rawField != null;
+
+                        remapAtLikeField(ast, rawField, pair.getValue(), "FIELD");
+                    }
+                }
+            }
+
             // TODO: This should be refactored such that InjectData can handle this case,
             //  or other arbitrary cases like it, instead of being a bodge on.
             //  This largely duplicates the previous branch while specialising it.
@@ -459,6 +493,17 @@ public class MixinRemapperVisitor extends ASTVisitor {
         }
 
         return injectTargets;
+    }
+
+    // TODO: Make this not a bodge. The relevant consumer doesn't need the injection point.
+    private static AtData[] getAtDataArray(final String injectionPoint, final String[] array) {
+        final AtData[] atData = new AtData[array.length];
+
+        for (int i = 0; i < array.length; i++) {
+            atData[i] = AtData.from(injectionPoint, array[i], null);
+        }
+
+        return atData;
     }
 
     private void remapMethod(final AST ast, final MemberValuePair pair, final String[] injectTargets) {
@@ -609,44 +654,72 @@ public class MixinRemapperVisitor extends ASTVisitor {
     }
 
     private void remapAtAnnotation(final AST ast, final ITypeBinding declaringClass, final NormalAnnotation atAnnotation, final AtData atDatum) {
+        this.remapAtAnnotation(ast, declaringClass, atAnnotation, atDatum, "target", "desc");
+    }
+
+    private void remapAtAnnotation(final AST ast, final ITypeBinding declaringClass, final NormalAnnotation atAnnotation, final AtData atDatum, final String targetName, final String descName) {
         for (final Object atRaw : atAnnotation.values()) {
             // this will always be a MemberValuePair
             final MemberValuePair atRawPair = (MemberValuePair) atRaw;
 
             // check for the target
-            if (Objects.equals("target", atRawPair.getName().getIdentifier())) {
-                // make sure everything is present
-                if (atDatum.getClassName().isPresent()) {
-                    final String className = atDatum.getClassName().get();
-                    final Expression originalTarget = atRawPair.getValue();
-
-                    // get the class mapping of the class that owns the target we're remapping
-                    final ClassMapping<?, ?> atTargetMappings = this.mappings.computeClassMapping(className).orElse(null);
-                    if (atTargetMappings == null) continue;
-
-                    final String deobfTargetClass = atTargetMappings.getFullDeobfuscatedName();
-
-                    if (atDatum.getTarget().isPresent()) {
-                        final InjectTarget atTarget = atDatum.getTarget().get();
-                        final String newTarget = remapInjectTarget(atTargetMappings, atTarget, null);
-                        String deobfTarget = "L" + deobfTargetClass + ";" + newTarget;
-                        replaceExpression(ast, this.context, originalTarget, deobfTarget);
-                    }
-                    else {
-                        // it's just the class name
-                        replaceExpression(ast, this.context, originalTarget, deobfTargetClass);
-                    }
-                } else if (atDatum.getTarget().isPresent()) {
-                    atDatum.getTarget().get().getMethodDescriptor()
-                        .ifPresent(desc -> replaceExpression(ast, this.context, atRawPair.getValue(), this.mappings.deobfuscate(desc).toString()));
-                }
+            if (Objects.equals(targetName, atRawPair.getName().getIdentifier())) {
+                remapAtAnnotation(ast, atDatum, atRawPair.getValue());
             }
 
             // modern style @Desc
-            if ("desc".equals(atRawPair.getName().getIdentifier())) {
+            if (Objects.equals(descName, atRawPair.getName().getIdentifier())) {
                 if (!atDatum.getDesc().isPresent()) continue;
                 this.remapDescAnnotation(ast, declaringClass, (Annotation) atRawPair.getValue(), atDatum.getDesc().get());
             }
+        }
+    }
+
+    private void remapAtAnnotation(final AST ast, final AtData atDatum, Expression originalTarget) {
+        // make sure everything is present
+        if (atDatum.getClassName().isPresent()) {
+            final String className = atDatum.getClassName().get();
+
+            // get the class mapping of the class that owns the target we're remapping
+            final ClassMapping<?, ?> atTargetMappings = this.mappings.computeClassMapping(className).orElse(null);
+            if (atTargetMappings == null) {
+                return;
+            }
+
+            final String deobfTargetClass = atTargetMappings.getFullDeobfuscatedName();
+
+            if (atDatum.getTarget().isPresent()) {
+                final InjectTarget atTarget = atDatum.getTarget().get();
+                final String newTarget = remapInjectTarget(atTargetMappings, atTarget, null);
+                String deobfTarget = "L" + deobfTargetClass + ";" + newTarget;
+                replaceExpression(ast, this.context, originalTarget, deobfTarget);
+            }
+            else {
+                // it's just the class name
+                replaceExpression(ast, this.context, originalTarget, deobfTargetClass);
+            }
+        } else if (atDatum.getTarget().isPresent()) {
+            atDatum.getTarget().get().getMethodDescriptor()
+                    .ifPresent(desc -> replaceExpression(ast, this.context, originalTarget, this.mappings.deobfuscate(desc).toString()));
+        }
+    }
+
+    // TODO: this could be refactored so that the sink doesn't need AtDesc and can just be fed the value directly.
+    private void remapAtLikeField(final AST ast, final Object[] rawValues, final Expression expression, final String atInjectionPoint) {
+        if (expression instanceof ArrayInitializer) {
+            final ArrayInitializer value = (ArrayInitializer) expression;
+            final List<?> expressions = value.expressions();
+
+            for (int i = 0; i < expressions.size(); i++) {
+                final AtData atDatum = AtData.from(atInjectionPoint, (String)rawValues[i], null);
+                final Object expr = expressions.get(i);
+                // Assume Expression for now. This is probably correct.
+                remapAtAnnotation(ast, atDatum, (Expression) expr);
+            }
+        }
+        else {
+            final AtData atDatum = AtData.from(atInjectionPoint, (String)rawValues[0], null);
+            remapAtAnnotation(ast, atDatum, expression);
         }
     }
 

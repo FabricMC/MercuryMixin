@@ -13,7 +13,9 @@ public final class MixinConstants {
     public static final String MIXIN_PACKAGE = "org.spongepowered.asm.mixin";
     public static final String GEN_PACKAGE = MIXIN_PACKAGE + ".gen";
     public static final String INJECTION_PACKAGE = MIXIN_PACKAGE + ".injection";
-    public static final String EXTRAS_INJECTION_PACKAGE = "com.llamalad7.mixinextras.injector";
+    public static final String EXTRAS_PACKAGE = "com.llamalad7.mixinextras";
+    public static final String EXTRAS_INJECTION_PACKAGE = EXTRAS_PACKAGE + ".injector";
+    public static final String EXTRAS_EXPRESSION_PACKAGE = EXTRAS_PACKAGE + ".expression";
     public static final String SQUARED_PACKAGE = "com.bawnorton.mixinsquared";
 
     public static final String MIXIN_CLASS = MIXIN_PACKAGE + ".Mixin";
@@ -45,6 +47,9 @@ public final class MixinConstants {
     public static final String WRAP_WITH_CONDITION_V2 = EXTRAS_INJECTION_PACKAGE + ".v2.WrapWithCondition";
     // extras deprecated
     public static final String WRAP_WITH_CONDITION = EXTRAS_INJECTION_PACKAGE + ".WrapWithCondition";
+    // extras expression
+    public static final String DEFINITION = EXTRAS_EXPRESSION_PACKAGE + ".Definition";
+    public static final String EXPRESSION = EXTRAS_EXPRESSION_PACKAGE + ".Expression";
     // squared
     public static final String TARGET_HANDLER = SQUARED_PACKAGE + ".TargetHandler";
 
